@@ -1,5 +1,5 @@
 from deepsearcher.tools import log
-
+from deepsearcher.vector_db.base import RetrievalResult
 
 RAG_ROUTER_PROMPT = """Given a list of agent indexes and corresponding descriptions, each agent has a specific function. 
 Given a query, select only one agent that best matches the agent handling the query, and return the index without any other information.
@@ -44,6 +44,10 @@ class RAGRouter:
             f"<think> Select agent [{selected_agent.__class__.__name__}] to answer the query [{query}] </think>\n"
         )
         return self.rag_agents[selected_agent_index], chat_response.total_tokens
+
+
+    def retrieve(self, query: str, **kwargs) -> Tuple[List[RetrievalResult], int, dict]:
+
 
 
 
