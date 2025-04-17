@@ -1,6 +1,5 @@
 from deepsearcher.tools import log
 from deepsearcher.vector_db.base import RetrievalResult
-
 RAG_ROUTER_PROMPT = """Given a list of agent indexes and corresponding descriptions, each agent has a specific function. 
 Given a query, select only one agent that best matches the agent handling the query, and return the index without any other information.
 
@@ -45,8 +44,25 @@ class RAGRouter:
         )
         return self.rag_agents[selected_agent_index], chat_response.total_tokens
 
-
     def retrieve(self, query: str, **kwargs) -> Tuple[List[RetrievalResult], int, dict]:
+
+        agent, n_token_router = self._route(query)
+        retrieved_results, n_token_retrieval, metadata = agent.retrieve(query, **kwargs)
+        return retrieved_results, n_token_router + n_token_retrieval, metadata
+
+
+    def query(self, query: str, **kwargs) -> Tuple[str, List[RetrievalResult], int]:
+        agent, n_token_router = self._route(query)
+        answer, retrieved_results, n_token_retrieval = agent.query(query, **kwargs)
+        return answer, retrieved_results, n_token_router + n_token_retrieval
+
+
+    def find_last_digit(self, string):
+        for char in reversed(string):
+            if char.isdigit():
+                return char
+        raise ValueError("No digit found in the string")
+
 
 
 
