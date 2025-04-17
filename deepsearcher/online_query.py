@@ -15,7 +15,10 @@ def query(original_query: str, max_iter: int = 3) -> Tuple[str, List[RetrievalRe
         - The number of tokens consumed during the process
     """
     client = OpenAI(api_key=api_key, base_url=base_url, **kwargs)
-    default_searcher = RAGRouter(llm = client)
+    default_searcher = RAGRouter(llm = client, rag_agents=[
+        DeepSearch(llm=client,
+                   embedding_model = )
+    ])
     return RAGRouter.query(original_query, max_iter=max_iter)
 
 def retrieve(original_query: str, max_iter: int = 3) -> Tuple[List[RetrievalResult], List[str], int]:
