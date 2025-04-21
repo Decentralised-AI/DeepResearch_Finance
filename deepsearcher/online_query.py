@@ -2,6 +2,8 @@ from typing import List, Tuple
 from deepsearcher.vector_db.base import RetrievalResult
 from openai import OpenAI
 from agent.rag_router import RAGRouter
+from agent.deep_search import DeepSearch
+from embedding.openai_embedding import OpenAIEmbedding
 
 
 def query(original_query: str, max_iter: int = 3) -> Tuple[str, List[RetrievalResult]]
@@ -15,9 +17,17 @@ def query(original_query: str, max_iter: int = 3) -> Tuple[str, List[RetrievalRe
         - The number of tokens consumed during the process
     """
     client = OpenAI(api_key=api_key, base_url=base_url, **kwargs)
+    embed_config = {
+        "model_name": "text-embedding-ada-002",
+        "api_key": api_key,
+        "base_url": base_url,
+        "dimension": 1536}
+    embedding_model = OpenAIEmbedding(embed_config)
+
+
     default_searcher = RAGRouter(llm = client, rag_agents=[
         DeepSearch(llm=client,
-                   embedding_model = )
+                   embedding_model = embedding_model)
     ])
     return RAGRouter.query(original_query, max_iter=max_iter)
 

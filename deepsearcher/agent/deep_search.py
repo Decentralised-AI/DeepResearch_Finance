@@ -60,3 +60,34 @@ Related Chunks:
 @describe_class(
     "This agent is suitable for handling general and simple queries, such as given a topic and then writing a report, survey, or article."
 )
+
+class DeepSearch:
+    """
+    Deep Search agent implementation for comprehensive information retrieval
+    """
+
+    def __init__(
+            self,
+            llm,
+            embedding_model,
+            vector_db,
+            max_iter: int = 3,
+            route_collection: bool = True,
+            text_window_splitter: bool = True,
+            **kwargs
+    ):
+        """
+        Initialize the DeepSearch agent
+        :param llm: The language model
+        :param embedding_model: the embedding model
+        :param vector_db: the vector database to search
+        :param max_iter: the maximum number of iterations for the search process
+        :param route_collection: whether to use a collection router for search
+        :param text_window_splitter: whether to use text_window splitter
+        :param kwargs:
+        """
+        self.llm = llm
+        self.embedding_model = embedding_model
+        self.vector_db = vector_db
+        self.max_iter = max_iter
+        self.route_collection = route_collection
