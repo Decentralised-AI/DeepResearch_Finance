@@ -1,5 +1,4 @@
 import logging
-
 from termcolor import colored
 
 

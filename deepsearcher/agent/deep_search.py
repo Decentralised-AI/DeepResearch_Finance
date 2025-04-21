@@ -1,6 +1,6 @@
 import asyncio
 from typing import List, Tuple
-
+from collection_router import CollectionRouter
 
 SUB_QUERY_PROMPT = """To answer this question more comprehensively, please break down the original question 
 into up to four sub-questions. Return as list of str. If this is a very simple question and no decomposition 
@@ -91,3 +91,16 @@ class DeepSearch:
         self.vector_db = vector_db
         self.max_iter = max_iter
         self.route_collection = route_collection
+        self.collection_router = CollectionRouter(
+            llm=self.llm, vector_db=self.vector_db, dim=embedding_model.dimension)
+        self.text_window_splitter = text_window_splitter
+
+    def _generate_sub_queries(self, original_query: str) -> Tuple[List[str], int]:
+        chat_response = self.llm.chat(
+            messages=[
+                {"role": "user",
+                 "content": SUB_QUERY_PROMPT.format(original_query=original_query)}
+            ]
+        )
+        response_content = chat_response.content
+        return self.llm.literal_eval(response_content), chat_response.total_tokens

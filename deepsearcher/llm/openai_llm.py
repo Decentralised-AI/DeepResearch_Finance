@@ -1,12 +1,11 @@
 from openai import OpenAI
-from deepsearcher.llm.base import ChatResponse
+from deepsearcher.llm.base import ChatResponse, BaseLLM
 from typing import Dict, List
 
-class OpenAISearch:
 
+class OpenAISearch(BaseLLM):
 
     def __init__(self, model: str = "o1-mini", **kwargs):
-
         """
         Initializes an OpenAI language model client.
         :param model:
