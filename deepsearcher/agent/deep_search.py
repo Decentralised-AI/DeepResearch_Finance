@@ -1,6 +1,8 @@
 import asyncio
 from typing import List, Tuple
 from collection_router import CollectionRouter
+from deepsearcher.vector_db.base import RetrievalResult
+from deepsearcher.tools import log
 
 SUB_QUERY_PROMPT = """To answer this question more comprehensively, please break down the original question 
 into up to four sub-questions. Return as list of str. If this is a very simple question and no decomposition 
@@ -104,3 +106,99 @@ class DeepSearch:
         )
         response_content = chat_response.content
         return self.llm.literal_eval(response_content), chat_response.total_tokens
+
+    async def _search_chunks_from_vectordb(self, query: str, sub_queries: List[str]):
+        consume_tokens = 0
+        if self.route_collection:
+            selected_collections, n_token_route = self.collection_router.invoke(
+                query=query, dim=self.embedding_model.dimension)
+
+        else:
+            selected_collections = self.collection_router.all_collections
+            n_token_route = 0
+        consume_tokens += n_token_route
+
+        all_retrieved_results = []
+        query_vector = self.embedding_model.embed_query(query)
+        for collection in selected_collections:
+            log.color_print(f"<search> Search [{query}] in [{collection}]... </search>\n")
+            retrieved_results = self.vector_db.search_data(
+                collection=collection, vector=query_vector
+            )
+            if not retrieved_results or len(retrieved_results) == 0:
+                log.color_print(
+                    f"<search> No relevant document chunks found in '{collection}'! </search>\n"
+                )
+                continue
+            accepted_chunk_num = 0
+            references = set()
+            for retrieved_result in retrieved_results:
+                chat_response = self.llm.chat(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": RERANK_PROMPT.format(
+                                query=[query] + sub_queries,
+                                retrieved_chunk=f"<chunk>{retrieved_result.text}</chunk>"
+                            ),
+                        }
+                    ]
+                )
+                consume_tokens += chat_response.total_tokens
+                response_content = chat_response.content.strip()
+                # strip the reasoning text if exists
+                if "<think>" in response_content and "</think>" in response_content:
+                    end_of_think = response_content.find("</think>") + len("</think>")
+                    response_content = response_content[end_of_think:].strip()
+                if "YES" in response_content and "NO" not in response_content:
+                    all_retrieved_results.append(retrieved_result)
+                    accepted_chunk_num += 1
+                    references.add(retrieved_result.reference)
+
+            if accepted_chunk_num > 0:
+                log.color_print(
+                    f"<search> Accept {accepted_chunk_num} document chunk(s) from references: {list(references)} </search>\n"
+                )
+            else:
+                log.color_print(
+                    f"<search> No document chunk accepted from '{collection}'! </search>\n"
+                )
+        return all_retrieved_results, consume_tokens
+
+    def _generate_gap_queries(
+            self, original_query: str, all_sub_queries: List[str], all_chunks: List[RetrievalResult]
+    ) -> Tuple[List[str], int]:
+        reflect_prompt = REFLECT_PROMPT.format(
+            question=original_query,
+            mini_questions=all_sub_queries,
+            mini_chunk_str=self._format_chunk_texts([chunk.text for chunk in all_chunks])
+        )
+
+    def retrieve(self, original_query: str, **kwargs) -> Tuple[List[RetrievalResult], int, dict]:
+        """
+        Retrieve relevant documents from the knowledge base for the given query.
+        It performs a search thorugh the vector DB to find the most relevant docs for answering the query
+        :param original_query:
+        :param kwargs:
+        :return:
+        """
+        return asyncio.run(self.async_retrieve(original_query, **kwargs))
+
+    async def async_retrieve(self, original_query: str, **kwargs) -> Tuple[List[RetrievalResult], int, dict]:
+        max_iter = kwargs.pop("max_iter", self.max_iter)
+
+
+    def _format_chnk_texts(self, chunk_texts: List[str]) -> str:
+        chunk_str = ""
+        for i, chunk in enumerate(chunk_texts):
+            chunk_str += f"""<chunk_{i}>\n{chunk}\n</chunk_{i}>\n"""
+        return chunk_str
+
+
+
+
+
+
+
+
+
