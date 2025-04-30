@@ -3,6 +3,7 @@ from typing import List, Tuple
 from collection_router import CollectionRouter
 from deepsearcher.vector_db.base import RetrievalResult
 from deepsearcher.tools import log
+from deepsearcher.vector_db.base import deduplicate_results
 
 SUB_QUERY_PROMPT = """To answer this question more comprehensively, please break down the original question 
 into up to four sub-questions. Return as list of str. If this is a very simple question and no decomposition 
@@ -202,6 +203,29 @@ class DeepSearch:
             )
         all_sub_queries.extend(sub_queries)
         sub_gap_queries = sub_queries
+
+        for iter in range(max_iter):
+            log.color_print(f">> Iteration: {iter + 1}\n")
+            search_res_from_vectordb = []
+            search_res_from_internet = []
+
+            # Create all search tasks
+            search_tasks = [
+                self._search_chunks_from_vectordb(query, sub_gap_queries)
+                for query in sub_gap_queries
+            ]
+            # Execute all tasks in parallel and wait for results
+            search_results = await asyncio.gather(*search_tasks)
+            # Merge all results
+            for result in search_results:
+                search_res, consumed_token = result
+                total_tokens += consumed_token
+                search_res_from_vectordb.extend(search_res)
+
+            search_res_from_vectordb = deduplicate_results(search_res_from_vectordb)
+
+
+
 
 
 
