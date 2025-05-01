@@ -50,6 +50,30 @@ class RetrievalResult:
         return f"RetrievalResult(score={self.score}, embedding={self.embedding}, text={self.text}, reference={self.reference}), metadata={self.metadata}"
 
 
+class BaseVectorDB:
+    """
+    Abstract class for vector database implementations
+    """
+
+    def __init__(
+            self,
+            default_collection: str = "deepsearcher",
+            *args,
+            **kwargs):
+
+        self.default_collections = default_collection
+
+    @abstractmethod
+    def init_collection(
+            self, dim: int, collection: str, ):
+
+
+    @abstractmethod
+    def insert_data(self, collection: str, chunks: List[Chunk], ):
+
+
+
+
 def deduplicate_results(results: List[RetrievalResult]) -> List[RetrievalResult]:
     """
     Remove duplicate results based on text content.
