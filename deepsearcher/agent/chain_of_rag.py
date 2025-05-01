@@ -252,7 +252,7 @@ class ChainOfRAG:
             intermediate_contexts.append(
                 f"Intermediate query{intermediate_idx}: {followup_query}\nIntermediate answer{intermediate_idx}: {intermediate_answer}"
             )
-            total_usage += n_token0 + n_token1 + n_token2
+            token_usage += n_token0 + n_token1 + n_token2
             if self.early_stopping:
                 has_enough_info, n_token_check = self._check_has_enough_info(
                     query, intermediate_contexts
@@ -269,9 +269,39 @@ class ChainOfRAG:
         additional_info = {"intermediate_context": intermediate_contexts}
         return all_retrieved_results, token_usage, additional_info
 
-
-
-
+    def query(self, query: str, **kwargs) -> Tuple[str, List[RetrievalResult], int]:
+        """
+        Executes a query and returns the final answer along with all retrieved results and total token usage.
+        It uses a query, retrieves relevant documents, and then summarizes the answer based on retreived
+        docs and intermediate contexts. It logs the final answer and returns the answer content
+        :param query:
+        :param kwargs:
+        :return:
+        """
+        all_retrieved_results, n_token_retrieval, additional_info = self.retrieve(query, **kwargs)
+        intermediate_context = additional_info["intermediate_context"]
+        log.color_print(
+            f"<think> Summarize answer from all {len(all_retrieved_results)} retrieved chunks... </think>\n"
+        )
+        chat_response = self.llm.chat(
+            [
+                {
+                    "role": "user",
+                    "content": FINAL_ANSWER_PROMPT.format(
+                        retrieved_documents=self._format_retrieved_results(all_retrieved_results),
+                        intermediate_context="\n".join(intermediate_context),
+                        query=query,
+                    )
+                }
+            ]
+        )
+        log.color_print("\n==== FINAL ANSWER====\n")
+        log.color_print(chat_response.content)
+        return (
+            chat_response.content,
+            all_retrieved_results,
+            n_token_retrieval + chat_response.total_tokens
+        )
 
     def _format_retrieved_results(self, retrieved_results: List[RetrievalResult]) -> str:
         formatted_documents = []
