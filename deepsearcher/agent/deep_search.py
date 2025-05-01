@@ -174,6 +174,9 @@ class DeepSearch:
             mini_questions=all_sub_queries,
             mini_chunk_str=self._format_chunk_texts([chunk.text for chunk in all_chunks])
         )
+        chat_response = self.llm.chat([{"role": "user", "content": reflect_prompt}])
+        response_content = chat_response.content
+        return self.llm.literal_eval(response_content), chat_response.total_tokens
 
     def retrieve(self, original_query: str, **kwargs) -> Tuple[List[RetrievalResult], int, dict]:
         """
@@ -223,11 +226,70 @@ class DeepSearch:
                 search_res_from_vectordb.extend(search_res)
 
             search_res_from_vectordb = deduplicate_results(search_res_from_vectordb)
+            # search_res_from_internet = deduplicate_results(search_res_from_internet)
+            all_search_res.extend(search_res_from_vectordb + search_res_from_internet)
+            if iter == max_iter - 1:
+                log.color_print("<think> Exceeded maximum iterations. Exiting. </think>\n")
+                break
+            log.color_print("<think> Reflecting on the search results... </think>\n")
+            sub_gap_queries, consumed_token = self._generate_gap_queries(
+                original_query, all_sub_queries, all_search_res
+            )
 
+            total_tokens += consumed_token
+            if not sub_gap_queries or len(sub_gap_queries) == 0:
+                log.color_print("<think> No new search queries were generated. Exiting. </think>\n")
+                break
+            else:
+                log.color_print(
+                    f"<think> New search queries for next iteration: {sub_gap_queries} </think>\n"
+                )
+                all_sub_queries.extend(sub_gap_queries)
 
+        all_search_res = deduplicate_results(all_search_res)
+        additional_info = {"all_sub_queries": all_sub_queries}
+        return all_search_res, total_tokens, additional_info
 
+    def query(self, query: str, **kwargs) -> Tuple[str, List[RetrievalResult]]:
 
+        """
+        Query the agent and generate an answer based on retrieved documents.  The method retrieve
+        relevant documents and uses language model to generate a comprehensive answer to the query.
+        :param query:
+        :param kwargs:
+        :return: A tuple containing:
+            - The generated answer
+            - A list of retrieved document results
+            - The total token usage
+        """
+        all_retrieved_results, n_token_retrieval, additional_info = self.retrieve(query, **kwargs)
+        if not all_retrieved_results or len(all_retrieved_results) == 0:
+            return f"No relevant information found for query '{query}'.", [], n_token_retrieval
+        all_sub_queries = additional_info["all_sub_queries"]
+        chunk_texts = []
+        for chunk in all_retrieved_results:
+            if self.text_window_splitter and "wider_text" in chunk.metadata:
+                chunk_texts.append(chunk.metadata["wider_text"])
+            else:
+                chunk_texts.append(chunk.text)
 
+        log.color_print(
+            f"<think> Summarize answer from all {len(all_retrieved_results)} retrieved chunks... </think>\n"
+        )
+        summary_prompt = SUMMARY_PROMPT.format(
+            question=query,
+            mini_questions=all_sub_queries,
+            mini_chunk_str=self._format_chunk_texts(chunk_texts),
+        )
+
+        chat_response = self.llm.chat([{"role": "user", "content": summary_prompt}])
+        log.color_print("\n==== FINAL ANSWER====\n")
+        log.color_print(chat_response.content)
+        return (
+            chat_response.content,
+            all_retrieved_results,
+            n_token_retrieval + chat_response.total_tokens
+        )
 
     def _format_chnk_texts(self, chunk_texts: List[str]) -> str:
         chunk_str = ""
