@@ -1,7 +1,7 @@
 from typing import List, Tuple
 from deepsearcher.llm.base import BaseLLM
 from deepsearcher.agent.collection_router import CollectionRouter
-from deepsearcher.vector_db.base import RetrievalResult
+from deepsearcher.vector_db.base import RetrievalResult, deduplicate_results
 from deepsearcher.tools import log
 
 FOLLOWUP_QUERY_PROMPT = """You are using a search tool to answer the main query by iteratively searching the database. 
@@ -144,6 +144,81 @@ class ChainOfRAG:
 
         consume_tokens += n_token_route
         all_retrieved_results = []
+        for collection in selected_collections:
+            log.color_print(f"<search> Search [{query}] in [{collection}]... </search>\n")
+            query_vector = self.embedding_model.embed_query(query)
+            retrieved_results = self.vector_db.search_data(
+                collection=collection,
+                vector=query_vector
+            )
+            all_retrieved_results.extend(retrieved_results)
+        all_retrieved_results = deduplicate_results(all_retrieved_results)
+        chat_response = self.llm.chat(
+            [
+                {
+                    "role": "user",
+                    "content": INTERMEDIATE_ANSWER_PROMPT.format(
+                        retrieved_documents=self._format_retrieved_results(all_retrieved_results),
+                        sub_query=query,
+                    )
+                }
+            ]
+        )
+        return (
+            chat_response.content,
+            all_retrieved_results,
+            consume_tokens + chat_response.content,
+        )
+
+    def _get_supported_docs(
+            self,
+            retrieved_results: List[RetrievalResult],
+            query: str,
+            intermediate_answer: str
+    ) -> Tuple[List[RetrievalResult], int]:
+        supported_retrieved_results = []
+        token_usage = 0
+        if "No relevant information found" not in intermediate_answer:
+            chat_response = self.llm.chat(
+                [
+                    {
+                        "role": "user",
+                        "content": GET_SUPPORTED_DOCS_PROMPT.format(
+                            retrieved_documents = self._format_retrieved_results(retrieved_results),
+                            query=query,
+                            answer=intermediate_answer
+                        )
+                    }
+                ]
+            )
+            supported_doc_indices = self.llm.literal_eval(chat_response.content)
+            supported_retrieved_results = [
+                retrieved_results[int(i)]
+                for i in supported_doc_indices
+                if int(i) < len(retrieved_results)
+            ]
+            token_usage = chat_response.total_tokens
+        return supported_retrieved_results, token_usage
+
+    def _check_has_enough_info(
+            self, query: str, intermediate_contexts: List[str]
+    ) -> Tuple[bool, int]:
+        if not intermediate_contexts:
+            return False, 0
+
+        chat_response = self.llm.chat(
+            [
+                {
+                    "role": "user",
+                    "content": REFLECTION_PROMPT.format(
+                        query=query,
+                        intermediate_context="\n".join(intermediate_contexts)
+                    )
+                }
+            ]
+        )
+        has_enough_info = chat_response.content.strip().lower() == "yes"
+        return has_enough_info, chat_response.total_tokens
 
     def retrieve(self, query: str, **kwargs) -> Tuple[List[RetrievalResult], int, dict]:
         """
@@ -163,12 +238,51 @@ class ChainOfRAG:
             log.color_print(f">> Iteration: {iter + 1}\n")
             # creates a follow-up query that helps fully answer the main query
             followup_query, n_token0 = self._reflect_get_subquery(query, intermediate_contexts)
-
-            intermediate_answer, retrieved_results, n_token1 = self._retrieve_and_answer(followup_query)
-            supported_retrieved_results, retrieved_results, n_token1 = self._get_supported_docs(
+            # for the followup query, we identify relevant content and generate potential answers
+            intermediate_answer, retrieved_results, n_token1 = self._retrieve_and_answer(
+                followup_query
+            )
+            #for the info chunks relevant to the follow up query, the follow up query, and the answer on the
+            # follow up query: get the info chunks that support the follow up query and intermediate answer
+            supported_retrieved_results, n_token2 = self._get_supported_docs(
                 retrieved_results, followup_query, intermediate_answer
             )
             all_retrieved_results.extend(supported_retrieved_results)
+            intermediate_idx = len(intermediate_contexts) + 1
+            intermediate_contexts.append(
+                f"Intermediate query{intermediate_idx}: {followup_query}\nIntermediate answer{intermediate_idx}: {intermediate_answer}"
+            )
+            total_usage += n_token0 + n_token1 + n_token2
+            if self.early_stopping:
+                has_enough_info, n_token_check = self._check_has_enough_info(
+                    query, intermediate_contexts
+                )
+                token_usage += n_token_check
+
+                if has_enough_info:
+                    log.color_print(
+                       f"<think> Early stopping after iteration {iter + 1}: Have enugh information to answer the main query. </think>\n"
+                    )
+                    break
+
+        all_retrieved_results = deduplicate_results(all_retrieved_results)
+        additional_info = {"intermediate_context": intermediate_contexts}
+        return all_retrieved_results, token_usage, additional_info
+
+
+
+
+
+    def _format_retrieved_results(self, retrieved_results: List[RetrievalResult]) -> str:
+        formatted_documents = []
+        for i, result in enumerate(retrieved_results):
+            if self.text_window_splitter and "wider_text" in result.metadata:
+                text = result.metadata["wider_text"]
+            else:
+                text = result.text
+            formatted_documents.append(f"<Document {i}>\n{text}\n<\Document {i}>")
+        return "\n".join(formatted_documents)
+
 
 
 
