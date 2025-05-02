@@ -51,6 +51,28 @@ class RetrievalResult:
         return f"RetrievalResult(score={self.score}, embedding={self.embedding}, text={self.text}, reference={self.reference}), metadata={self.metadata}"
 
 
+class CollectionInfo:
+    """
+    Represents information about a collection in the vector database.
+
+    This class encapsulates the name and description of a collection.
+
+    Attributes:
+        collection_name: The name of the collection.
+        description: The description of the collection.
+    """
+
+    def __init__(self, collection_name: str, description: str):
+        """
+        Initialize a CollectionInfo object.
+
+        Args:
+            collection_name: The name of the collection.
+            description: The description of the collection.
+        """
+        self.collection_name = collection_name
+        self.description = description
+
 class BaseVectorDB:
     """
     Abstract class for vector database implementations
@@ -118,6 +140,16 @@ class BaseVectorDB:
         :return:
         """
         pass
+
+    def list_collections(selfself, *args, **kwargs) -> List[CollectionInfo]:
+        pass
+
+    @abstractmethod
+    def clear_db(self, *args, **kwargs):
+        pass
+
+
+
 
 
 

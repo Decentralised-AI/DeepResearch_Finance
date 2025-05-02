@@ -1,8 +1,8 @@
 from typing import List
 from openai import OpenAI
+from deepsearcher.embedding.base import BaseEmbedding
 
-
-class OpenAIEmbedding:
+class OpenAIEmbedding(BaseEmbedding):
 
     def __init__(self, model: str = "text-embedding-ada-002", **kwargs):
         api_key = kwargs.pop("api_key")

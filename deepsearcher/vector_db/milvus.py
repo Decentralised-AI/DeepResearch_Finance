@@ -4,9 +4,10 @@ import numpy as np
 from pymilvus import DataType, MilvusClient
 
 from deepsearcher.loader.splitter import Chunk
+from deepsearcher.vector_db.base import BaseVectorDB
 
 
-class Milvus:
+class Milvus(BaseVectorDB):
     """Milvus class is a subclass of DB class."""
 
     client: MilvusClient = None
@@ -25,7 +26,7 @@ class Milvus:
         :param token:
         :param db:
         """
-
+        super().__init__(default_collection)
         self.default_collection = default_collection
         self.client = MilvusClient(uri=uri, token=token, db_name=db, timeout=30)
 
