@@ -7,3 +7,4 @@ llm: BaseLLM = None
 embedding_model: BaseEmbedding = None
 vector_db: BaseVectorDB = None
 default_searcher: RAGRouter = None
+naive_rag: NaiveRAG = None

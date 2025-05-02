@@ -1,5 +1,6 @@
 import numpy as np
-from typing import List
+from typing import List, Union
+from deepsearcher.loader.splitter import Chunk
 
 class RetrievalResult:
     """
@@ -65,11 +66,60 @@ class BaseVectorDB:
 
     @abstractmethod
     def init_collection(
-            self, dim: int, collection: str, ):
+            self,
+            dim: int,
+            collection: str,
+            description: str,
+            force_new_collection=False,
+            *args,
+            **kwargs
+    ):
+        """
+        Initialize a collection in the vector db
+        :param dim:
+        :param collection:
+        :param description:
+        :param force_new_collection:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        pass
 
 
     @abstractmethod
-    def insert_data(self, collection: str, chunks: List[Chunk], ):
+    def insert_data(
+            self,
+            collection: str,
+            chunks: List[Chunk],
+            *args,
+            **kwargs
+    ):
+        """
+        Initialize a collection in the vector db
+        :param collection:
+        :param chunks:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def search_data(
+            self, collection: str, vector: Union[np.array, List[float]], *args, **kwargs
+    ) -> List[RetrievalResult]:
+        """
+        Search for similar vectors in a collection
+        :param collection:
+        :param vector:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        pass
+
+
 
 
 
