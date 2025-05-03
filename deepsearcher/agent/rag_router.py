@@ -1,7 +1,9 @@
+from typing import List, Optional, Tuple
 from deepsearcher.tools import log
 from deepsearcher.vector_db.base import RetrievalResult
 RAG_ROUTER_PROMPT = """Given a list of agent indexes and corresponding descriptions, each agent has a specific function. 
-Given a query, select only one agent that best matches the agent handling the query, and return the index without any other information.
+Given a query, select only one agent that best matches the agent handling the query, and return the index without 
+any other information.
 
 ## Question
 {query}
@@ -25,6 +27,16 @@ class RAGRouter:
         self.llm = llm
         self.rag_agents = rag_agents
         self.agent_descriptions = agent_descriptions
+        if not agent_descriptions:
+            try:
+                self.agent_descriptions = [
+                    agent.__class__.__description__ for agent in self.rag_agents
+                ]
+            except Exception:
+                raise AttributeError(
+                    "Please provide agent descriptions or set __description__ attribute for each agent class."
+                )
+
 
     def _route(self, query: str):
         description_str = "\n".join(
