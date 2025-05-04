@@ -1,0 +1,49 @@
+provide_settings:
+  llm:
+    provider: "OpenAI"
+    config:
+      model: "o1-mini"
+      api_key: "sk-xxxx"  # Uncomment to override the `OPENAI_API_KEY` set in the environment variable
+#      base_url: ""
+
+#    provider: "DeepSeek"
+#    config:
+#      model: "deepseek-reasoner"
+##      api_key: "sk-xxxx"  # Uncomment to override the `DEEPSEEK_API_KEY` set in the environment variable
+##      base_url: ""
+
+  embedding:
+     provider: "OpenAIEmbedding"
+     config:
+       model: "text-embedding-ada-002"
+#       api_key: ""  # Uncomment to override the `OPENAI_API_KEY` set in the environment variable
+#       base_url: "" # Uncomment to override the `OPENAI_BASE_URL` set in the environment variable
+#       dimension: 1536 # Uncomment to customize the embedding dimension
+
+
+  file_loader:
+    provider: "PDFLoader"
+    config: { }
+
+
+  web_crawler:
+    provider: "FireCrawlCrawler"
+    config: { }
+
+  vector_db:
+    provider: "Milvus"
+    config:
+      default_collection: "deepsearcher"
+      uri: "./milvus.db"
+      token: "root:Milvus"
+      db: "default"
+
+
+
+
+query_settings:
+  max_iter: 3
+
+load_settings:
+  chunk_size: 1500
+  chunk_overlap: 100
