@@ -1,5 +1,5 @@
 from typing import List
-from langchain_core.document import Document
+from langchain_core.documents import Document
 import pdfplumber
 
 class PDFLoader:

@@ -4,6 +4,8 @@ from deepsearcher.agent.collection_router import CollectionRouter
 from deepsearcher.vector_db.base import RetrievalResult, deduplicate_results
 from deepsearcher.tools import log
 
+from deepsearcher.agent.base import describe_class
+
 FOLLOWUP_QUERY_PROMPT = """You are using a search tool to answer the main query by iteratively searching the database. 
 Given the following intermediate queries and answers, generate a new simple follow-up question that can help answer the 
 main query. You may rephrase or decompose the main query when previous answers are not helpful. Ask simple follow-up 

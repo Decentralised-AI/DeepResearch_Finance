@@ -1,12 +1,12 @@
 from typing import List, Tuple
 from deepsearcher.vector_db.base import RetrievalResult
 from openai import OpenAI
-from agent.rag_router import RAGRouter
-from agent.deep_search import DeepSearch
-from embedding.openai_embedding import OpenAIEmbedding
+from deepsearcher.agent.rag_router import RAGRouter
+from deepsearcher.agent.deep_search import DeepSearch
+from deepsearcher.embedding.openai_embedding import OpenAIEmbedding
 from deepsearcher import configuration
 
-def query(original_query: str, max_iter: int = 3) -> Tuple[str, List[RetrievalResult]]
+def query(original_query: str, max_iter: int = 3) -> Tuple[str, List[RetrievalResult]]:
     """
     Query the knowlwdge base with a question to get an answer.
     :param original_query: 

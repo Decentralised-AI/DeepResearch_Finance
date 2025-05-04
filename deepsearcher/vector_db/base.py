@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import numpy as np
 from typing import List, Union
 from deepsearcher.loader.splitter import Chunk

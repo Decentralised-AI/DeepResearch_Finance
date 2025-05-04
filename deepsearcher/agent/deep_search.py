@@ -1,9 +1,11 @@
 import asyncio
 from typing import List, Tuple
-from collection_router import CollectionRouter
+from deepsearcher.agent.collection_router import CollectionRouter
 from deepsearcher.vector_db.base import RetrievalResult
 from deepsearcher.tools import log
 from deepsearcher.vector_db.base import deduplicate_results
+
+from deepsearcher.agent.base import describe_class
 
 SUB_QUERY_PROMPT = """To answer this question more comprehensively, please break down the original question 
 into up to four sub-questions. Return as list of str. If this is a very simple question and no decomposition 

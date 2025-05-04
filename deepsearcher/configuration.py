@@ -33,6 +33,13 @@ class Configuration:
         with open(config_path, "r") as file:
             return yaml.safe_load(file)
 
+    def set_provider_config(self, feature, provider, provider_configs):
+
+        if feature not in self.provide_settings:
+            raise ValueError(f"Unsupported feature: {feature}")
+        self.provide_settings[feature]["provider"] = provider
+        self.provide_settings[feature]["config"] = provider_configs
+
 
 
 config = Configuration()
