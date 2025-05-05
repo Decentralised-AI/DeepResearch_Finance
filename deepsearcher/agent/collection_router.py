@@ -1,5 +1,6 @@
 from typing import List, Tuple
 from deepsearcher.tools import log
+from deepsearcher.vector_db.base import BaseVectorDB
 
 COLLECTION_ROUTE_PROMPT = """
 I provide you with collection_name(s) and corresponding collection_description(s). Please select the collection names 
@@ -21,13 +22,12 @@ class CollectionRouter:
     in the vector database are most likely to contain relevant information.
     """
 
-    def __init__(self, llm, vector_db, dim: int, **kwargs):
+    def __init__(self, llm, vector_db: BaseVectorDB, dim: int, **kwargs):
         self.llm = llm
         self.vector_db = vector_db
         self.all_collections = [
             collection_info.collection_name
-            for collection_info in self.vector_db.list_collections(dim=dim)
-        ]
+            for collection_info in self.vector_db.list_collections(dim=dim)]
 
     def invoke(self, query: str, dim: int, **kwargs) -> Tuple[List[str], int]:
         """

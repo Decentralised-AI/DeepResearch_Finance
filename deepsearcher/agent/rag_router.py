@@ -16,7 +16,11 @@ Only return one agent index number that best matches the agent handling the quer
 
 class RAGRouter:
 
-    def __init__(self, llm, rag_agents, agent_descriptions):
+    def __init__(
+            self,
+            llm,
+            rag_agents,
+            agent_descriptions: Optional[List[str]] = None):
 
         """
         Initializes the RAGRouter

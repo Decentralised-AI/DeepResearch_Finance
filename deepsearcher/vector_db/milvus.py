@@ -1,10 +1,11 @@
 from typing import List, Optional, Union
 
 import numpy as np
+from deepsearcher.tools import log
 from pymilvus import DataType, MilvusClient
 
 from deepsearcher.loader.splitter import Chunk
-from deepsearcher.vector_db.base import BaseVectorDB
+from deepsearcher.vector_db.base import BaseVectorDB, RetrievalResult, CollectionInfo
 
 
 class Milvus(BaseVectorDB):
@@ -29,7 +30,6 @@ class Milvus(BaseVectorDB):
         super().__init__(default_collection)
         self.default_collection = default_collection
         self.client = MilvusClient(uri=uri, token=token, db_name=db, timeout=30)
-
 
     def init_collection(
             self,
@@ -73,7 +73,6 @@ class Milvus(BaseVectorDB):
         except Exception as e:
             print(f"fail to init db for milvus, error info: {e}")
 
-
     def insert_data(
             self,
             collection: Optional[str],
@@ -115,6 +114,103 @@ class Milvus(BaseVectorDB):
                 self.client.insert(collection_name=collection, data=batch_data)
         except Exception as e:
             print(f"fail to insert data, error info")
+
+    def search_data(
+            self,
+            collection: Optional[str],
+            vector: Union[np.array, List[float]],
+            top_k: int = 5,
+            *args,
+            **kwargs
+    ) -> List[RetrievalResult]:
+
+        """
+        Search for similar vectors in a Milvus collection
+        :param collection:
+        :param vector:
+        :param top_k:
+        :param kwargs:
+        :return:
+        """
+        if not collection:
+            collection = self.default_collection
+        try:
+            search_results = self.client.search(
+                collection_name=collection,
+                data=[vector],
+                limit=top_k,
+                output_fields=["embedding", "text", "reference", "metadata"],
+                timeout=10
+            )
+            return [
+                RetrievalResult(
+                    embedding=b["entity"]["embedding"],
+                    text=b["entity"]["text"],
+                    reference=b["entity"]["reference"],
+                    score=b["distance"],
+                    metadata=b["entity"]["metadata"]
+                )
+                for a in search_results
+                for b in a
+            ]
+        except Exception as e:
+            log.critical(f"dail to search data, error info: {e}")
+            return []
+
+    def list_collections(self, *args, **kwargs) -> List[CollectionInfo]:
+
+        """
+        List all collections in the Milvus DB
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        collection_infos = []
+        dim = kwargs.pop("dim", 0)
+        try:
+            collections = self.client.list_collections()
+            for collection in collections:
+                description = self.client.describe_collection(collection)
+                if dim != 0:
+                    skip = False
+                    for field_dict in description["fields"]:
+                        if (
+                            field_dict["name"] == "embedding" and field_dict["type"] == DataType.FLOAT_VECTOR
+                        ):
+                            if field_dict["params"]["dim"] != dim:
+                                skip = True
+
+                    if skip:
+                        continue
+
+                collection_infos.append(
+                    CollectionInfo(
+                        collection_name=collection,
+                        description=description["description"]
+                    )
+                )
+        except Exception as e:
+            log.critical(f"fail to list collections, error info: {e}")
+
+        return collection_infos
+
+    def clear_db(self, collection: str = "deepsearcher", *args, **kwargs):
+        """
+        Clear (drop) a collection from the Milvus database
+        :param collection:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        if not collection:
+            collection = self.default_collection
+        try:
+            self.client.drop_collection(collection)
+        except Exception as e:
+            log.warning(f"fail to clear db, error info: {e}")
+
+
+
 
 
 

@@ -59,11 +59,12 @@ def init_config(config: Configuration):
     llm_config = config.provide_settings["llm"]["config"]
     embedding_config = config.provide_settings["embedding"]["config"]
     vector_db_config = config.provide_settings["vector_db"]["config"]
+    print(llm_config)
 
-    llm = OpenAISearch(llm_config)
-    embedding_model = OpenAIEmbedding(embedding_config)
+    llm = OpenAISearch(**llm_config)
+    embedding_model = OpenAIEmbedding(**embedding_config)
     file_loader = PDFLoader()
-    vector_db = Milvus(vector_db_config)
+    vector_db = Milvus(**vector_db_config)
     default_searcher = RAGRouter(
         llm=llm,
         rag_agents=[

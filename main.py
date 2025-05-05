@@ -12,3 +12,13 @@ import os
 
 from deepsearcher.configuration import Configuration, init_config
 from deepsearcher.online_query import query
+
+
+config = Configuration()
+openai_api_key = "Add the LLM API Key"
+config.set_provider_config("llm", "OpenAI", {"model": "o1-mini", "api_key": openai_api_key})
+config.set_provider_config("embedding", "OpenAIEmbedding", {"model": "text-embedding-ada-002", "api_key": openai_api_key})
+
+print(config.provide_settings)
+
+init_config(config=config)

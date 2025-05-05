@@ -1,14 +1,30 @@
 from typing import List
 from openai import OpenAI
 from deepsearcher.embedding.base import BaseEmbedding
+import os
+
+OPENAI_MODEL_DIM_MAP = {
+    "text-embedding-ada-002": 1536,
+    "text-embedding-3-small": 1536,
+    "text-embedding-3-large": 3072,
+}
+
 
 class OpenAIEmbedding(BaseEmbedding):
 
     def __init__(self, model: str = "text-embedding-ada-002", **kwargs):
         api_key = kwargs.pop("api_key")
-        dimension = kwargs.pop("dimension")
-        model = kwargs.pop("model_name")
-        base_url = kwargs.pop("base_url")
+
+        if "dimension" in kwargs:
+            dimension = kwargs.pop("dimension")
+        else:
+            dimension = OPENAI_MODEL_DIM_MAP[model]
+        if "model_name" in kwargs and (not model or model == "text-embedding-ada-002"):
+            model = kwargs.pop("model_name")
+        if "base_url" in kwargs:
+            base_url = kwargs.pop("base_url")
+        else:
+            base_url = os.getenv("OPENAI_BASE_URL")
         self.dim = dimension
         self.model = model
         self.client = OpenAI(api_key=api_key, base_url=base_url, **kwargs)
