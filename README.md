@@ -39,6 +39,41 @@ llm, a list of `RAGAgents`. These RAGAgents are the classes: `DeepSearch` and `C
    retrieval and generation.
    
 
+How the DeepSearch Agent works in details:
+
+
+
+* First, we use the original query to generate up to 4 sub-queries. The idea is that for complex questions, 
+sub-questions can be generated to help search for more info to generate a more comprehensive answer. For example,
+  the query: Explain dep learning can be broken down in a python list of questions
+  ["What is deep learning?",
+  "What is the difference between deep learning and machine learning?",
+  "What is the history of deep learning?"]
+  
+* Then for each one of the sub-queries, we search to identify the data collection(s) that has 
+  the information to answer the question. Then for each collection, we identify and extract the 
+  chunks that are relevant to the sub-query, all the relevant chunk 
+in the Milvus DB using the embeddings to perform search (hybrid approach might be more accurate here). 
+  Then for each extracted chunk, we use llm to check if it is useful to address the suq-query. 
+  The LLM responses with a yes or no (This can help us reduce noise). All retrieved relevant content/chunks are 
+  added in a list. The above process runs for all the sub queries. Finally, deduplication is applied in the 
+  identified content. Finally, the original query, all the sub-queries and the deduplicated content 
+  is passed as input to a final LLM that is trying to identify additional sub-gap-queries in case additional 
+  research and content is required to answer the query. this sub_gap_queries are also used to extract relevant content. 
+  This process iterates for three times, where new sub-queries and the corresponding context is identified, 
+  sub-gap queries and content is also identified and added to the rest of usinque relevant content. The final 
+  relevant contents along with the original query and the relenat sub-queries are passed in an LLM which is then
+  trying to summarize the content and generate an answer.
+
+
+When all the above have been initialized we do the following:
+
+1) We load the data from local files/directories to our milvus db:
+
+2) we load data from a website (TODOs)
+
+3) Then we run the query
+
 
 
 

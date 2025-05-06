@@ -1,4 +1,4 @@
-from vector_db.milvus import Milvus
+from deepsearcher.vector_db.milvus import Milvus
 from deepsearcher import configuration
 from tqdm import tqdm
 import os

@@ -1,8 +1,10 @@
 from typing import List
 from langchain_core.documents import Document
+from deepsearcher.loader.base import BaseLoader
 import pdfplumber
 
-class PDFLoader:
+
+class PDFLoader(BaseLoader):
 
     def __init__(self):
 

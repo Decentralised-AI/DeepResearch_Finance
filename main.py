@@ -22,3 +22,8 @@ config.set_provider_config("embedding", "OpenAIEmbedding", {"model": "text-embed
 print(config.provide_settings)
 
 init_config(config=config)
+
+from deepsearcher.offline_loader import load_from_local_files
+
+local_path = "/Users/petros-pavlosypsilantis/Documents/Projects/LLM_Agents/DeepResearch/deep-searcher/data"
+load_from_local_files(paths_or_directory=local_path)
