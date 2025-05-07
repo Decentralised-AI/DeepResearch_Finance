@@ -64,6 +64,42 @@ in the Milvus DB using the embeddings to perform search (hybrid approach might b
   sub-gap queries and content is also identified and added to the rest of usinque relevant content. The final 
   relevant contents along with the original query and the relenat sub-queries are passed in an LLM which is then
   trying to summarize the content and generate an answer.
+  
+
+
+
+How the `Chain of RAG` agent works:
+
+The idea of this agent is to decompose complex queries and gradually
+find the fact information of sub-queries. It is very suitable
+for handling concrete factual queries and multi-hop questions
+The agent operates in a few iterations. In the first iteration, 
+the agent is using previous intermediate queries and answers 
+(not available to the 1st iteration) and tries to generate a new follow-up question
+that can help answer the main query when previous answers are not helpful. 
+The tool at this stage asks only simple follow-up question as it might be
+difficult to address complex questions. The followup query is passed as input to
+another LLM agent which is using this query to first identify the data collections that
+potentially contain the relevant information. Then it iterates through the identified data
+collections and retrieved the relevant chunks. All relevant chunks are gathered in a list.
+Then the deduplicated relevant chunks and the follow up questions are passed into 
+another LLM agent which is trying to generate and precise answer without hallucinating. 
+Then the retrieved relevent to the follow-up question chunks, the follow-up query and 
+the intermediate answer are passed as input to another LLM agent which selectes the 
+relevant chunks that support the Q-A pair. By Q-A pair, we mean the follow-up query 
+the intermediate answer. This selected chunks are stored in a list. 
+Also, the follow-up query and the intermediate answer are stored in a list so they 
+can be used in the second iteration. Therefore, in the 2nd iteration, the agent 
+will try to come up with another follow-up question to help answer parts of the 
+initial query that were not covered in the first intermediate answer. 
+In this way the model ensure that is asking the question from multiple angles and 
+extract the relevant content to fully answer the intial query. An early 
+stopping mechanism is developed to stop the iterations when the question has been 
+answered thoroughly.
+
+
+
+
 
 
 When all the above have been initialized we do the following:
