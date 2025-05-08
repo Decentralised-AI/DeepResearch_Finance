@@ -23,8 +23,6 @@ def query(original_query: str, max_iter: int = 3) -> Tuple[str, List[RetrievalRe
         "base_url": base_url,
         "dimension": 1536}
     embedding_model = OpenAIEmbedding(embed_config)
-
-
     default_searcher = RAGRouter(llm = client, rag_agents=[
         DeepSearch(llm=client,
                    embedding_model = embedding_model)
