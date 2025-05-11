@@ -43,8 +43,10 @@ class StructureDBAgent:
 
     def __init__(
             self,
-            model):
+            model,
+            db_path):
         self.llm = ChatOpenAI(model=model)
+        self.db_path = db_path
 
     def texttosqlqa(self, query: str) -> str:
         """
@@ -76,7 +78,7 @@ class StructureDBAgent:
         else:
             return "No SQL code found"
 
-    def query(self, query: str):
+    def query(self, query: str) -> str:
         """
         Return the retrieved information from the SQL DB.
         :param query:
